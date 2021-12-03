@@ -8,42 +8,50 @@ public class Pistol : MonoBehaviour
     [SerializeField] private float _range;
     [SerializeField] private int _damage;
     [SerializeField] private float _fireTime;
-    private float _fireTimer;
+    private float _lastFireTime;
     [SerializeField] private Transform _shootOrigin;
+    [SerializeField] private AudioSource _shotAudio;
+    [SerializeField] private LineRenderer _bulletTrail;
 
 
     private void Update()
     {
-        if (_fireTimer >= 0)
-            _fireTimer -= Time.deltaTime;
-
         if (_playerController.CanShoot)
         {
             Shoot();
-        }
-
-        
+        }  
     }
 
     public void Shoot()
     {
-        if (_fireTimer > 0)
+        if (Time.time - _lastFireTime < _fireTime)
             return;
 
-        RaycastHit hit;
+        _shotAudio.Play();
 
-        //Debug.DrawRay(_shootOrigin.position, transform.forward, Color.blue, 1.0f);
-
-        if (Physics.Raycast(_shootOrigin.position, transform.forward, out hit, _range))
+        if (Physics.Raycast(_shootOrigin.position, transform.forward, out RaycastHit hit, _range))
         {
             if (hit.transform.GetComponent<Health>())
             {
                 hit.transform.GetComponent<Health>().TakeDamage(_damage);
             }
+
+
+            StartCoroutine(DrawBullet(hit.distance));
         }
+        else
+            StartCoroutine(DrawBullet(_range));
 
-        print("shot");
+        _lastFireTime = Time.time;
+    }
 
-        _fireTimer = _fireTime;
+    
+    private IEnumerator DrawBullet(float length)
+    {
+        _bulletTrail.SetPosition(1, new Vector3(0, 0, length));
+
+        yield return new WaitForSeconds(0.1f);
+
+        _bulletTrail.SetPosition(1, Vector3.zero);
     }
 }

@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Health : MonoBehaviour
 {
     [SerializeField] private int _maxHealth;
+    [SerializeField] private UnityEvent _event;
     private int _health;
     public int HealthPoints => _health;
 
@@ -17,5 +19,7 @@ public class Health : MonoBehaviour
     {
         print("damage");
         _health -= damage;
+        if (_event != null)
+            _event.Invoke();
     }
 }
