@@ -4,14 +4,17 @@ using UnityEngine;
 
 public class CameraFollow2p : MonoBehaviour
 {
+    public Transform Player0;
+    public Transform Player1;
+    public Queue<Transform> Player;
     [SerializeField] private float _offset;
-    [SerializeField] private Transform _player1;
-    [SerializeField] private Transform _player2;
     [SerializeField] private Vector3 _target;
     [SerializeField] private float _maxPlayerDistanceHorizontal;
     [SerializeField] private float _maxPlayerDistanceVertical;
     [SerializeField] private Vector3 _levelSize;
+    [SerializeField] private float _speed = 1.0f;
     private Vector3 _lastPos;
+
 
     private void Start()
     {
@@ -20,7 +23,7 @@ public class CameraFollow2p : MonoBehaviour
 
     private void Update()
     {
-        if (_player1 == null || _player2 == null)
+        if (Player0 == null || Player1 == null)
             return;
 
         if (DistanceHorizontal() > _maxPlayerDistanceHorizontal || DistanceVertical() > _maxPlayerDistanceVertical)
@@ -30,18 +33,18 @@ public class CameraFollow2p : MonoBehaviour
 
             if (DistanceHorizontal() > _maxPlayerDistanceHorizontal)
             {
-                movementLimiter1 = new Vector3(_player1.position.x - _target.x, 0, 0);
-                movementLimiter2 = new Vector3(_player2.position.x - _target.x, 0, 0);
+                movementLimiter1 = new Vector3(Player0.position.x - _target.x, 0, 0);
+                movementLimiter2 = new Vector3(Player1.position.x - _target.x, 0, 0);
             }
 
             if (DistanceVertical() > _maxPlayerDistanceVertical)
             {
-                movementLimiter1 = new Vector3(movementLimiter1.x, 0, _player1.position.z - _target.z);
-                movementLimiter2 = new Vector3(movementLimiter2.x, 0, _player2.position.z - _target.z);
+                movementLimiter1 = new Vector3(movementLimiter1.x, 0, Player0.position.z - _target.z);
+                movementLimiter2 = new Vector3(movementLimiter2.x, 0, Player1.position.z - _target.z);
             }
 
-            _player1.GetComponent<PlayerController>().LimitMovement(movementLimiter1);
-            _player2.GetComponent<PlayerController>().LimitMovement(movementLimiter2);
+            Player0.GetComponent<PlayerController>().LimitMovement(movementLimiter1);
+            Player1.GetComponent<PlayerController>().LimitMovement(movementLimiter2);
         }
 
         Follow();
@@ -49,8 +52,13 @@ public class CameraFollow2p : MonoBehaviour
 
     private void Follow()
     {
-        _target = (_player1.position + _player2.position) / 2;
-       
+        if (!Player0.GetComponent<PlayerController>().isAlive)
+            _target = Player1.position;
+        else if (!Player1.GetComponent<PlayerController>().isAlive)
+            _target = Player0.position;
+        else
+            _target = (Player0.position + Player1.position) / 2;
+
         if (_target.x * _target.x > (_levelSize.x / 2 - _maxPlayerDistanceHorizontal / 2) * (_levelSize.x / 2 - _maxPlayerDistanceHorizontal / 2))
         {
             _target = new Vector3(
@@ -67,22 +75,38 @@ public class CameraFollow2p : MonoBehaviour
                 _lastPos.z);
         }
 
-        transform.position = _target + transform.forward * _offset;
+
+        var targetPosition = _target + transform.forward * _offset;
+        transform.position = Vector3.MoveTowards(transform.position, targetPosition, _speed * Time.deltaTime);
         _lastPos = _target;
     }
 
     private float DistanceHorizontal()
     {
-        return Vector3.Distance(
-            new Vector3(_player1.position.x, 0, 0),
-            new Vector3(_player2.position.x, 0, 0));
+        if (Player0.GetComponent<PlayerController>().isAlive && Player1.GetComponent<PlayerController>().isAlive)
+        {
+            return Vector3.Distance(
+                new Vector3(Player0.position.x, 0, 0),
+                new Vector3(Player1.position.x, 0, 0));
+        }
+        else
+        {
+            return 0;
+        }
     }
 
     private float DistanceVertical()
     {
-        return Vector3.Distance(
-            new Vector3(0, 0, _player1.position.z),
-            new Vector3(0, 0, _player2.position.z));
+        if (Player0.GetComponent<PlayerController>().isAlive && Player1.GetComponent<PlayerController>().isAlive)
+        {
+            return Vector3.Distance(
+            new Vector3(0, 0, Player0.position.z),
+            new Vector3(0, 0, Player1.position.z));
+        }
+        else
+        {
+            return 0;
+        }
     }
 
     private void OnDrawGizmosSelected()
@@ -92,6 +116,5 @@ public class CameraFollow2p : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireCube(new Vector3(0, _levelSize.y / 2, 0), new Vector3(_levelSize.x, _levelSize.y, _levelSize.z - _maxPlayerDistanceVertical));
-
     }
 }

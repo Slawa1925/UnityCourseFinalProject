@@ -9,22 +9,47 @@ public class PlayerInfo : MonoBehaviour
     [SerializeField] private Transform _infoUI;
     [SerializeField] private Text _playerNameText;
     [SerializeField] private Slider _healthSlider;
-    [SerializeField] private Health _health;
+    private Health _health;
+    private PlayerWeaponsController _weaponsController;
     [SerializeField] private Transform _playerNameTransform;
-    [SerializeField] private GameObject _player;
-    [SerializeField] private Camera _camera;
+    private Camera _camera;
     [SerializeField] private Vector3 _textOffset;
+
+    public void SetCanvas(Transform canvas)
+    {
+        _canvas = canvas;
+    }
 
     private void Start()
     {
-        _playerNameText.text = _player.name;
+        _camera = Camera.main;
+        _health = GetComponent<Health>();
+        _weaponsController = GetComponent<PlayerWeaponsController>();
+        UpdateText();
         _infoUI.SetParent(_canvas);
     }
 
     private void Update()
     {
-        var screenPos = _camera.WorldToScreenPoint(_player.transform.position + _textOffset);
+        var screenPos = _camera.WorldToScreenPoint(transform.position + _textOffset);
         _playerNameTransform.position = screenPos;
         _healthSlider.value = _health.HealthPoints;
+        UpdateText();
+    }
+
+    public void UpdateText()
+    {
+            _playerNameText.text = gameObject.name + "\n[" + _weaponsController.CurrentWeaponName() + "]";
+    }
+
+    private void OnDisable()
+    {
+        if (_infoUI != null)
+            _infoUI.gameObject.SetActive(false);
+    }
+
+    private void OnEnable()
+    {
+        _infoUI.gameObject.SetActive(true);
     }
 }

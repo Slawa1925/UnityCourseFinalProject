@@ -4,54 +4,73 @@ using UnityEngine;
 
 public class Pistol : MonoBehaviour
 {
-    [SerializeField] private PlayerController _playerController;
+    public int Ammo { get; private set; }
+    public PlayerInput PlayerInput;
     [SerializeField] private float _range;
     [SerializeField] private int _damage;
     [SerializeField] private float _fireTime;
+    [SerializeField] private int _maxAmmo;
     private float _lastFireTime;
     [SerializeField] private Transform _shootOrigin;
     [SerializeField] private AudioSource _shotAudio;
-    [SerializeField] private LineRenderer _bulletTrail;
+    [SerializeField] private GameObject _bullet;
+    [SerializeField] private float _bulletScatter;
 
+
+    private void Start()
+    {
+        ResetWeapon();
+    }
+
+    public void ResetWeapon()
+    {
+        Ammo = _maxAmmo;
+    }
+
+    public void RefillAmmo()
+    {
+        Ammo = _maxAmmo;
+    }
 
     private void Update()
     {
-        if (_playerController.CanShoot)
+        if (PlayerInput.CurrentWeaponInput())
         {
             Shoot();
-        }  
+        }
     }
 
     public void Shoot()
     {
+        if (Ammo == 0)
+            return;
+
         if (Time.time - _lastFireTime < _fireTime)
             return;
 
         _shotAudio.Play();
+        Ammo--;
 
-        if (Physics.Raycast(_shootOrigin.position, transform.forward, out RaycastHit hit, _range))
+        var direction = transform.forward + transform.right * Random.Range(-_bulletScatter, _bulletScatter);
+
+        if (Physics.Raycast(_shootOrigin.position, direction, out RaycastHit hit, _range))
         {
             if (hit.transform.GetComponent<Health>())
             {
                 hit.transform.GetComponent<Health>().TakeDamage(_damage);
+                hit.transform.LookAt(new Vector3(transform.position.x, hit.transform.position.y, transform.position.z));
             }
-
-
-            StartCoroutine(DrawBullet(hit.distance));
+            SpawnBullet(hit.point);
         }
         else
-            StartCoroutine(DrawBullet(_range));
+            SpawnBullet(_shootOrigin.position + direction * _range);
 
         _lastFireTime = Time.time;
     }
 
-    
-    private IEnumerator DrawBullet(float length)
+    private void SpawnBullet(Vector3 target)
     {
-        _bulletTrail.SetPosition(1, new Vector3(0, 0, length));
-
-        yield return new WaitForSeconds(0.1f);
-
-        _bulletTrail.SetPosition(1, Vector3.zero);
+        var bullet = Instantiate(_bullet, _shootOrigin.position, _shootOrigin.rotation);
+        bullet.GetComponent<BulletController>().Spawn(target);
     }
 }

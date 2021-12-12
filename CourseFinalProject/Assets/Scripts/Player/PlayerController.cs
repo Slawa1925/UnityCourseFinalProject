@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,41 +6,144 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
+    enum State { Normal, TakingDamage, Dead };
+
+    public event Action DeathEvent;
+
+    public bool CanShoot { get; private set; }
+    public int WeaponSwitch { get; private set; }
+    public bool isAlive;
+    private State _state;
     [SerializeField] private CharacterController _controller;
-    [SerializeField] private float _speed;
     [SerializeField] private PlayerInput _playerInput;
-    [SerializeField] private GameObject _model;
-    [SerializeField] private float _maxPlayerDistance;
+    [SerializeField] private Animator _animator;
+    [SerializeField] private Health _health;
+    public GameObject Model;
+    [SerializeField] private float _speed;
+    [SerializeField] private float _spawnInvincibilityTime = 2.0f;
+    [SerializeField] private float _damageStunDuration = 2.0f;
+    private float _damageStunTimer;
     private Vector3 _movementLimiter;
     private Vector3 _input;
-    private bool _canShoot;
-    public bool CanShoot => _canShoot;
+    private float _spawnInvincibilityTimer;
+    [SerializeField] private float _damageKnockback = 1.0f;
+
 
     private void Start()
     {
         _controller = GetComponent<CharacterController>();
     }
 
+    public void SetInput(int i)
+    {
+        if (i == 0)
+            _playerInput = GetComponent<Player1Input>();
+        else if (i == 1)
+            _playerInput = GetComponent<Player2Input>();
+    }
+
+    public void Spawn()
+    {
+        _state = State.Normal;
+        isAlive = true;
+        Model.SetActive(true);
+        _health.Heal();
+        _spawnInvincibilityTimer = Time.time;
+        _health.IsInvincible = true;
+        _animator.SetBool("Invincible", true);
+        ResetAnimator();
+    }
+
+    public void ResetAnimator()
+    {
+        _animator.SetBool("isTakingDamage", false);
+        _animator.SetBool("isDead", false);
+        _animator.SetBool("isWalking", false);
+    }
+
+    public void Die()
+    {
+        gameObject.transform.position += Vector3.up * 100;
+        print(_state);
+        isAlive = false;
+        //ResetZombieTarget?.Invoke();
+        DeathEvent?.Invoke();
+    }
+
+    public void TakeDamage()
+    {
+        _state = State.TakingDamage;
+        _animator.SetBool("isTakingDamage", true);
+        _damageStunTimer = Time.time;
+
+        if (_health.HealthPoints <= 0)
+        {
+            _state = State.Dead;
+            _animator.SetBool("isDead", true);
+        }
+    }
+
+    public void DamageStun()
+    {
+        Move(-transform.forward, _damageKnockback);
+
+        if (Time.time - _damageStunTimer > _damageStunDuration)
+        {
+            _state = State.Normal;
+            _animator.SetBool("isTakingDamage", false);
+        }
+    }
+
     private void Update()
+    {
+        if (_health.IsInvincible)
+        {
+            if (Time.time - _spawnInvincibilityTimer > _spawnInvincibilityTime)
+            {
+                _health.IsInvincible = false;
+                _animator.SetBool("Invincible", false);
+            }
+        }
+
+        switch (_state)
+        {
+            case State.Normal:
+                InputMovement();
+                break;
+            case State.TakingDamage:
+                DamageStun();
+                break;
+            default:
+                break;
+        }
+    }
+
+    public void InputMovement()
     {
         _input = _playerInput.CurrentInput();
 
-        if ((_movementLimiter.x > 0 && _input.x > 0) || (_movementLimiter.x < 0 && _input.x < 0))
-        {
-            _input = new Vector3(0, _input.y, _input.z);
-        }
-
-        if ((_movementLimiter.z > 0 && _input.z > 0) || (_movementLimiter.z < 0 && _input.z < 0))
-        {
-            _input = new Vector3(_input.x, _input.y, 0);
-        }
-
-        _movementLimiter = Vector3.zero;
-
-        _controller.Move(_input * _speed * Time.deltaTime);
+        Move(_input, _speed);
         Rotate();
 
-        _canShoot = _playerInput.CurrentWeaponInput();
+        if (_input.x > 0 || _input.x < 0 || _input.z > 0 || _input.z < 0)
+            _animator.SetBool("isWalking", true);
+        else
+            _animator.SetBool("isWalking", false);
+
+        //CanShoot = _playerInput.CurrentWeaponInput();
+        //WeaponSwitch = _playerInput.WeaponSwitchInput();
+    }
+
+    public void Move(Vector3 input, float speed)
+    {
+        if ((_movementLimiter.x > 0 && input.x > 0) || (_movementLimiter.x < 0 && input.x < 0)) // try to shorten this (static utilit script with isNotZero function with 0.001f margins)
+            input = new Vector3(0, _input.y, _input.z);
+
+        if ((_movementLimiter.z > 0 && input.z > 0) || (_movementLimiter.z < 0 && input.z < 0))
+            input = new Vector3(input.x, input.y, 0);
+
+        _movementLimiter = Vector3.zero;
+        _controller.Move(input * speed * Time.deltaTime);
     }
 
     private void Rotate()

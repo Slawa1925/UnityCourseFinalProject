@@ -13,4 +13,13 @@ public class Player2Input : PlayerInput
     {
         return Input.GetButton("Fire2");
     }
+
+    public override int WeaponSwitchInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Period))
+            return 1;
+        if (Input.GetKeyDown(KeyCode.Comma))
+            return -1;
+        return 0;
+    }
 }

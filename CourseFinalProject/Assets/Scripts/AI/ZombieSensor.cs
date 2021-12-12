@@ -1,4 +1,4 @@
-using System.Collections;
+/*using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,4 +29,4 @@ public class ZombieSensor : MonoBehaviour
         _animator.SetBool("isTakingDamage", true);
         _animator.SetInteger("Health", _health.HealthPoints);
     }
-}
+}*/

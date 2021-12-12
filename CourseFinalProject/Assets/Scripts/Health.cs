@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,21 +6,27 @@ using UnityEngine.Events;
 
 public class Health : MonoBehaviour
 {
+    public int HealthPoints { get; private set; }
     [SerializeField] private int _maxHealth;
-    [SerializeField] private UnityEvent _event;
-    private int _health;
-    public int HealthPoints => _health;
+    public event Action DamageAction;
+    public bool IsInvincible;
 
     public void Start()
     {
-        _health = _maxHealth;
+        HealthPoints = _maxHealth;
+    }
+
+    public void Heal()
+    {
+        HealthPoints = _maxHealth;
     }
 
     public void TakeDamage(int damage)
     {
-        print("damage");
-        _health -= damage;
-        if (_event != null)
-            _event.Invoke();
+        if (IsInvincible)
+            return;
+
+        HealthPoints -= damage;
+        DamageAction?.Invoke();
     }
 }
