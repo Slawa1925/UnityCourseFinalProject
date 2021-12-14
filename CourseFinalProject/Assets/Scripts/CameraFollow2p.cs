@@ -16,10 +16,10 @@ public class CameraFollow2p : MonoBehaviour
     private Vector3 _lastPos;
 
 
-    private void Start()
+    /*private void Start()
     {
         Follow();
-    }
+    }*/
 
     private void Update()
     {

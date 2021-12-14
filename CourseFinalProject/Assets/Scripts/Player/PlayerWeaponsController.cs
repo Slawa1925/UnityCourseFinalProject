@@ -5,25 +5,26 @@ using UnityEngine;
 public class PlayerWeaponsController : MonoBehaviour
 {
     private PlayerInput _playerInput;
-    [SerializeField] private GameObject[] _weapon;
+    private ObjectPool _objectPool;
+    [SerializeField] private Weapon[] _weapon;
     [SerializeField] private int currentWeapon = 0;
 
     private void Start()
     {
         for (int i = 0; i < _weapon.Length; i++)
         {
-            _weapon[i].GetComponent<Pistol>().PlayerInput = _playerInput;
-            _weapon[i].GetComponent<Pistol>().ResetWeapon();
+            _weapon[i].SetPlayerInput(_playerInput);
+            _weapon[i].SetObjectPool(_objectPool);
+            _weapon[i].ResetWeapon();
+
+            if (_weapon[i].GetComponent<Pistol>())
+                _weapon[i].GetComponent<Pistol>().OutOfAmmo += SwitchToPistol;
+            else if (_weapon[i].GetComponent<Shotgun>())
+                _weapon[i].GetComponent<Shotgun>().OutOfAmmo += SwitchToPistol;
+            else if (_weapon[i].GetComponent<Grenade>())
+                _weapon[i].GetComponent<Grenade>().OutOfAmmo += SwitchToPistol;
         }
         SwitchToWeapon(currentWeapon);
-    }
-
-    public void SetInput(int i)
-    {
-        if (i == 0)
-            _playerInput = GetComponent<Player1Input>();
-        else if (i == 1)
-            _playerInput = GetComponent<Player2Input>();
     }
 
     private void Update()
@@ -37,15 +38,33 @@ public class PlayerWeaponsController : MonoBehaviour
         }
     }
 
+    public void SetInput(int i)
+    {
+        if (i == 0)
+            _playerInput = GetComponent<Player1Input>();
+        else if (i == 1)
+            _playerInput = GetComponent<Player2Input>();
+    }
+
+    public void SetPool(ObjectPool objectPool)
+    {
+        _objectPool = objectPool;
+    }
+
+    public void SwitchToPistol()
+    {
+        SwitchToWeapon(0);
+    }
+
     public void SwitchToWeapon(int weaponIndex)
     {
         currentWeapon = weaponIndex;
         for (int i = 0; i < _weapon.Length; i++)
         {
             if (i == weaponIndex)
-                _weapon[weaponIndex].SetActive(true);
+                _weapon[weaponIndex].gameObject.SetActive(true);
             else
-                _weapon[i].SetActive(false);
+                _weapon[i].gameObject.SetActive(false);
         }
     }
 
@@ -58,7 +77,7 @@ public class PlayerWeaponsController : MonoBehaviour
         else if (currentWeapon < 0)
             currentWeapon = _weapon.Length-1;
 
-        if (_weapon[currentWeapon].GetComponent<Pistol>().Ammo == 0)
+        if (_weapon[currentWeapon].GetAmmo() == 0)
         {
             SwitchWeapon(input);
             return;
@@ -80,8 +99,15 @@ public class PlayerWeaponsController : MonoBehaviour
     public string CurrentWeaponName()
     {
         var weaponName = _weapon[currentWeapon].name;
-        if (_weapon[currentWeapon].GetComponent<Pistol>().Ammo >= 0)
-            weaponName += ":" + _weapon[currentWeapon].GetComponent<Pistol>().Ammo;
+        if (_weapon[currentWeapon].GetAmmo() >= 0)
+            weaponName += ":" + _weapon[currentWeapon].GetAmmo();
         return weaponName;
+    }
+
+    public void GiveRandomAmmo()
+    {
+        var randomWeapon = Random.Range(1, _weapon.Length);
+        _weapon[randomWeapon].RefillAmmo();
+        print(_weapon[randomWeapon].name + " Ammo " + name);
     }
 }

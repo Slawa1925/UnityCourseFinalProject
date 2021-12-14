@@ -6,6 +6,7 @@ using UnityEngine;
 public class PlayerManager : MonoBehaviour
 {
     public Action GameOver;
+    public ObjectPool ObjectPool;
     [SerializeField] private int _numberOfPlayers;
     public PlayerController[] Player;
     [SerializeField] private Transform[] _playerSpawnPoint;
@@ -31,7 +32,9 @@ public class PlayerManager : MonoBehaviour
 
             Player[i].GetComponent<PlayerInfo>().SetCanvas(_canvas);
             Player[i].SetInput(i);
+            Player[i].SetObjectPool(ObjectPool);
             Player[i].GetComponent<PlayerWeaponsController>().SetInput(i);
+            Player[i].GetComponent<PlayerWeaponsController>().SetPool(ObjectPool);
             Player[i].Spawn();
         }
 
@@ -105,7 +108,6 @@ public class PlayerManager : MonoBehaviour
 
     private void OnPlayerDeath()
     {
-        print("OnPlayerDeath");
         if (!Player[0].isAlive && !Player[1].isAlive)
         {
             GameOver?.Invoke();
@@ -122,22 +124,5 @@ public class PlayerManager : MonoBehaviour
         {
             Gizmos.DrawWireCube(_playerSpawnPoint[i].position + Vector3.up * 0.5f, Vector3.one);
         }
-        
-        /*if (!Application.isPlaying)
-            return;
-
-        for (int i = 0; i < 3; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                var curPos = _player[0].transform.position + Vector3.up * 0.5f + new Vector3(i - 1, 0, j - 1) * 3.0f;
-
-                if (_spawnPositions[i * 3 + j])
-                    Gizmos.color = Color.green;
-                else
-                    Gizmos.color = Color.red;
-                Gizmos.DrawWireCube(curPos, Vector3.one);
-            }
-        }*/
     }
 }

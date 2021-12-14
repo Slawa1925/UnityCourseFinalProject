@@ -21,6 +21,8 @@ public class Health : MonoBehaviour
         HealthPoints = _maxHealth;
     }
 
+    public bool IsAtMaxHealth() => HealthPoints == _maxHealth;
+
     public void TakeDamage(int damage)
     {
         if (IsInvincible)

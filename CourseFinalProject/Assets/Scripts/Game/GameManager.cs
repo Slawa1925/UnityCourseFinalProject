@@ -8,6 +8,7 @@ public class GameManager : MonoBehaviour
 {
     public PlayerManager PlayerManager;
     public EnemyManager EnemyManager;
+    public ObjectPool ObjectPool;
     [SerializeField] private Text _scoreText;
     private int _score;
     [SerializeField] private GameObject _gameScreen;
@@ -18,14 +19,14 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // subscribe all actions here
         EnemyManager.PlayerManager = PlayerManager;
         EnemyManager.AddScore += AddScore;
         EnemyManager.Victory += OnVictory;
 
         PlayerManager.GameOver += OnGameOver;
-        //OnMenu();
-        OnRestart();
+
+        OnMenu();
+        //OnRestart();
     }
 
     public void OnExit()
@@ -35,6 +36,8 @@ public class GameManager : MonoBehaviour
 
     public void OnRestart()
     {
+        PlayerManager.enabled = true;
+        EnemyManager.enabled = true;
         Time.timeScale = 1;
         _gameScreen.SetActive(true);
         _gameOverScreen.SetActive(false);
@@ -62,6 +65,8 @@ public class GameManager : MonoBehaviour
 
     public void OnMenu()
     {
+        PlayerManager.enabled = false;
+        EnemyManager.enabled = false;
         Time.timeScale = 0;
         _gameScreen.SetActive(false);
         _gameOverScreen.SetActive(false);

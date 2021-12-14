@@ -13,8 +13,11 @@ public class EnemyManager : MonoBehaviour
         public float MovementSpeed;
     }
 
+    
     public Action Victory;
     public Action<int> AddScore;
+    [SerializeField] private ObjectPool _objectPool;
+    [SerializeField] private bool _pause;
     [SerializeField] private Wave[] _wave;
     [SerializeField] private int _currentWave;
     [SerializeField] private Transform[] _spawnPoints;
@@ -37,6 +40,8 @@ public class EnemyManager : MonoBehaviour
 
     private void Update()
     {
+        if (_pause)
+            return;
         if (_enemiesToSpawn > 0)
         {
             if (Time.time - _spawnTimer > _wave[_currentWave].SpawnTime)
@@ -54,6 +59,7 @@ public class EnemyManager : MonoBehaviour
                 _currentWave++;
                 if (_currentWave >= _wave.Length)
                 {
+                    _pause = true;
                     Victory?.Invoke();
                     return;
                 }
@@ -80,12 +86,10 @@ public class EnemyManager : MonoBehaviour
     private void Spawn()
     {
         var newEnemy = Instantiate(_zombiePrefab, _spawnPoints[UnityEngine.Random.Range(0, _spawnPoints.Length)].position, transform.rotation);
-        //int randomPoint = UnityEngine.Random.Range(0, _spawnPoints.Length);
-        //newEnemy.transform.position = _spawnPoints[randomPoint].position;
         newEnemy.GetComponent<Health>().DamageAction += newEnemy.GetComponent<ZombieController>().TakeDamage;
-        //newEnemy.GetComponent<ZombieController>().GetTarget += UpdateEnemyTarget;
         newEnemy.GetComponent<ZombieController>().OnDeath += OnZombieDeath;
         newEnemy.GetComponent<ZombieController>().SetSpeed(_wave[_currentWave].MovementSpeed);
+        newEnemy.GetComponent<ZombieController>().SetObjectPool(_objectPool);
         UpdateEnemyTarget(newEnemy.GetComponent<ZombieController>());
         _enemieList.Add(newEnemy);
     }
@@ -94,8 +98,6 @@ public class EnemyManager : MonoBehaviour
     {
         var player = PlayerManager.GetPlayer();
         enemy.SetTarget(player);
-        //player.GetComponent<PlayerController>().ResetZombieTarget -= enemy.OnTargetDeath;
-        //player.GetComponent<PlayerController>().ResetZombieTarget += enemy.OnTargetDeath;
     }
 
     private void OnDrawGizmos()

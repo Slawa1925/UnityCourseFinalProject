@@ -12,16 +12,17 @@ public class ZombieController : MonoBehaviour
     public Action<ZombieController> GetTarget;
     public Action<ZombieController> OnDeath;
 
+    private ObjectPool _objectPool;
     [SerializeField] private CharacterController _controller;
+    [SerializeField] private NavMeshAgent _agent;
     [SerializeField] private Animator _animator;
     [SerializeField] private Health _health;
-    [SerializeField] private float _speed;
     [SerializeField] private GameObject _target;
-    [SerializeField] private float _range;
     [SerializeField] private Transform _attackOrigin;
+    [SerializeField] private float _speed;
+    [SerializeField] private float _range;
     [SerializeField] private float _attackDistance;
     [SerializeField] private int _damage;
-    [SerializeField] private NavMeshAgent _agent;
     [SerializeField] private float _attackTime = 1.0f;
     [SerializeField] private float _damageKnockback = 1.0f;
     [SerializeField] private float _damageStunDuration = 2.0f;
@@ -40,8 +41,9 @@ public class ZombieController : MonoBehaviour
         switch (_state)
         {
             case State.Idle:
-                _animator.SetBool("isIdle", false);
                 _state = State.Chase;
+                _animator.SetBool("isIdle", false);
+                _animator.SetInteger("State", (int)_state);
                 break;
             case State.Chase:
                 Chase();
@@ -57,6 +59,8 @@ public class ZombieController : MonoBehaviour
         }
     }
 
+    public void SetObjectPool(ObjectPool objectPool) => _objectPool = objectPool;
+
     public void SetTarget(GameObject target)
     {
         _target = target;
@@ -67,30 +71,34 @@ public class ZombieController : MonoBehaviour
         _speed = speed;
     }
 
-    /*public void OnTargetDeath()
-    {
-        GetTarget?.Invoke(this);
-        print("target is dead");
-    }*/
-
     public void Chase()
     {
         _agent.SetDestination(_target.transform.position);
 
         if (_agent.path.corners.Length > 1)
             transform.LookAt(_agent.path.corners[1]);
-        _controller.Move(transform.forward * _speed * Time.deltaTime);
+
+        var input = transform.forward;
+
+        if (transform.position.y > 0.01)
+        {
+            input += Vector3.down;
+        }
+
+        _controller.Move(input * _speed * Time.deltaTime);
 
         if (CanAttack())
         {
             _state = State.Attack;
-            _animator.SetBool("canAttack", true);
+            _animator.SetInteger("State", (int)_state);
         }
     }
 
     public void Attack()
     {
-        print("Attack");
+        if (_state == State.Dead)
+            return;
+
         _timer = Time.time;
 
         if (Physics.Raycast(_attackOrigin.position, transform.forward, out RaycastHit hit, _range))
@@ -103,7 +111,7 @@ public class ZombieController : MonoBehaviour
         }
 
         _state = State.Chase;
-        _animator.SetBool("canAttack", false);
+        _animator.SetInteger("State", (int)_state);
     }
 
     public bool CanAttack()
@@ -125,20 +133,22 @@ public class ZombieController : MonoBehaviour
         if (Time.time - _damageStunTimer > _damageStunDuration)
         {
             _state = State.Chase;
-            _animator.SetBool("isTakingDamage", false);
+            _animator.SetInteger("State", (int)_state);
         }
     }
 
     public void TakeDamage()
     {
+        _objectPool.SpawnFromPool("BloodStain", new Vector3(transform.position.x, 0.01f, transform.position.z), transform.rotation);
         _state = State.TakeDamage;
-        _animator.SetBool("isTakingDamage", true);
+        _animator.SetInteger("State", (int)_state);
         _damageStunTimer = Time.time;
 
         if (_health.HealthPoints <= 0)
         {
             _state = State.Dead;
             _animator.SetBool("isDead", true);
+            _animator.SetInteger("State", (int)_state);
             Die();
         }
     }
